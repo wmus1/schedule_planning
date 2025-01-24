@@ -5,7 +5,7 @@ import pandas as pd
 if "employees" not in st.session_state:
     st.session_state["employees"] = []
 if "schedules" not in st.session_state:
-    st.session_state["schedules"] = pd.DataFrame(columns=["Employee", "Date", "Start Time", "End Time"])
+    st.session_state["schedules"] = pd.DataFrame(columns=["Employee", "Date", "Shift"])
 
 # Sidebar for navigation
 st.sidebar.title("Employee Scheduler")
@@ -14,12 +14,12 @@ menu = st.sidebar.radio("Menu", ["Add Employees", "Create Schedule", "View Sched
 # Add Employees Page
 if menu == "Add Employees":
     st.title("Add Employees")
-    
+
     with st.form("add_employee_form"):
         name = st.text_input("Employee Name")
         role = st.text_input("Role (e.g., Manager, Developer, etc.)")
         add_employee_button = st.form_submit_button("Add Employee")
-        
+
         if add_employee_button:
             if name:
                 st.session_state["employees"].append({"Name": name, "Role": role})
@@ -38,44 +38,43 @@ if menu == "Add Employees":
 # Create Schedule Page
 elif menu == "Create Schedule":
     st.title("Create Schedule")
-    
+
     if not st.session_state["employees"]:
         st.warning("Please add employees first!")
     else:
         employee_names = [emp["Name"] for emp in st.session_state["employees"]]
-        
+
         with st.form("schedule_form"):
             employee = st.selectbox("Select Employee", employee_names)
             date = st.date_input("Select Date")
-            start_time = st.time_input("Start Time")
-            end_time = st.time_input("End Time")
+
+            # Define the two 12-hour shifts
+            shift_options = ["Day Shift (:700 AM - 7:00 PM)", "Night Shift (7:00 PM - 7:00 AM)"]
+            shift = st.selectbox("Select Shift", shift_options)  # Let the user choose a shift
+
             create_schedule_button = st.form_submit_button("Create Schedule")
-            
+
             if create_schedule_button:
-                if start_time >= end_time:
-                    st.error("End time must be later than start time.")
-                else:
-                    new_schedule = {
-                        "Employee": employee,
-                        "Date": date,
-                        "Start Time": start_time,
-                        "End Time": end_time,
-                    }
-                    st.session_state["schedules"] = pd.concat(
+                new_schedule = {
+                    "Employee": employee,
+                    "Date": date,
+                    "Shift": shift,  # Store the selected shift
+                }
+                st.session_state["schedules"] = pd.concat(
                     [st.session_state["schedules"], pd.DataFrame([new_schedule])],
                     ignore_index=True,
-                    )
-                    st.success(f"Scheduled {employee} on {date} from {start_time} to {end_time}.")
+                )
+                st.success(f"Scheduled {employee} on {date} for {shift}.")
 
 # View Schedule Page
 elif menu == "View Schedule":
     st.title("View Schedule")
-    
+
     if st.session_state["schedules"].empty:
         st.write("No schedules created yet.")
     else:
         st.dataframe(st.session_state["schedules"])
-        
+
         # Download as CSV
         csv_data = st.session_state["schedules"].to_csv(index=False)
         st.download_button(
